@@ -117,9 +117,10 @@ function removeLeadingAndTrailingWhitespaces(value) {
  *   'A', 5  => 'AAAAA'
  *   'cat', 3 => 'catcatcat'
  */
-function removeLeadingAndTrailingWhitespaces(value) {
-    return value.trim();
+function repeatString(value, count) {
+    return value.repeat(count);
 }
+
 
 /**
  * Remove the first occurrence of string inside another string
