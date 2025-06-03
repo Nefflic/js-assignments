@@ -1,4 +1,4 @@
-'use strict';
+"use strict";
 
 /**
  * Returns the array of 32 compass points and heading.
@@ -17,10 +17,45 @@
  *  ]
  */
 function createCompassPoints() {
-    throw new Error('Not implemented');
-    var sides = ['N','E','S','W'];  // use array of cardinal directions only!
-}
+  function* directCoors(from, to, dir) {
+    let result = [
+      `${from}b${to}`,
+      `${from}${from}${to}`,
+      `${from}${to}b${from}`,
+      `${from}${to}`,
+      `${from}${to}b${to}`,
+      `${to}${from}${to}`,
+      `${to}b${from}`,
+    ];
 
+    if (dir == "f") result.reverse();
+
+    for (let i of result) {
+      yield i;
+    }
+  }
+
+  let result = [],
+    azimuth = 0,
+    items = [
+      { dir: "N", func: directCoors("N", "E", "d") },
+      { dir: "E", func: directCoors("S", "E", "f") },
+      { dir: "S", func: directCoors("S", "W", "d") },
+      { dir: "W", func: directCoors("N", "W", "f") },
+    ];
+
+  items.forEach((item) => {
+    result.push({ abbreviation: item.dir, azimuth: azimuth });
+    azimuth += 11.25;
+
+    for (let i = 0; i < 7; i++) {
+      result.push({ abbreviation: item.func.next().value, azimuth: azimuth });
+      azimuth += 11.25;
+    }
+  });
+
+  return result;
+}
 
 /**
  * Expand the braces of the specified string.
@@ -56,10 +91,28 @@ function createCompassPoints() {
  *   'nothing to do' => 'nothing to do'
  */
 function* expandBraces(str) {
-    throw new Error('Not implemented');
+  const arr = [],
+    regex = new RegExp("{([0-9a-zA-Z.,]+)}", "i"),
+    set = new Set();
+
+  arr.push(str);
+
+  while (arr.length) {
+    let item = arr.shift();
+    let matches = item.match(regex);
+
+    if (matches != null) {
+      let array = matches[1].split(",");
+
+      array.forEach((current) => {
+        arr.push(item.replace(matches[0], current));
+      });
+    } else if (!set.has(item)) {
+      set.add(item);
+      yield item;
+    }
+  }
 }
-
-
 /**
  * Returns the ZigZag matrix
  *
@@ -88,9 +141,37 @@ function* expandBraces(str) {
  *
  */
 function getZigZagMatrix(n) {
-    throw new Error('Not implemented');
-}
+  let matrix = Array.from({ length: n }, () => Array(n).fill(0));
 
+  let row = 0,
+    col = 0,
+    value = 0;
+  for (let i = 0; i < n * n; i++) {
+    matrix[row][col] = value++;
+
+    if ((row + col) % 2 === 0) {
+      if (col === n - 1) {
+        row++;
+      } else if (row === 0) {
+        col++;
+      } else {
+        row--;
+        col++;
+      }
+    } else {
+      if (row === n - 1) {
+        col++;
+      } else if (col === 0) {
+        row++;
+      } else {
+        row++;
+        col--;
+      }
+    }
+  }
+
+  return matrix;
+}
 
 /**
  * Returns true if specified subset of dominoes can be placed in a row accroding to the game rules.
@@ -113,9 +194,35 @@ function getZigZagMatrix(n) {
  *
  */
 function canDominoesMakeRow(dominoes) {
-    throw new Error('Not implemented');
-}
+  if (dominoes.length === 0) return true;
 
+  let adjacency = new Map();
+
+  for (let [a, b] of dominoes) {
+    adjacency.set(a, (adjacency.get(a) || 0) + 1);
+    adjacency.set(b, (adjacency.get(b) || 0) + 1);
+  }
+  let oddCount = 0;
+  for (let count of adjacency.values()) {
+    if (count % 2 !== 0) oddCount++;
+  }
+  if (oddCount > 2) return false;
+  let visited = new Set();
+  let nodes = [...adjacency.keys()];
+
+  function dfs(node) {
+    if (visited.has(node)) return;
+    visited.add(node);
+    for (let [a, b] of dominoes) {
+      if (a === node && !visited.has(b)) dfs(b);
+      if (b === node && !visited.has(a)) dfs(a);
+    }
+  }
+
+  dfs(nodes[0]);
+
+  return visited.size === nodes.length;
+}
 
 /**
  * Returns the string expression of the specified ordered list of integers.
@@ -137,13 +244,33 @@ function canDominoesMakeRow(dominoes) {
  * [ 1, 2, 4, 5]          => '1,2,4,5'
  */
 function extractRanges(nums) {
-    throw new Error('Not implemented');
+  if (nums.length === 0) return "";
+
+  let result = [];
+  let start = nums[0],
+    end = nums[0];
+
+  for (let i = 1; i <= nums.length; i++) {
+    if (i < nums.length && nums[i] === end + 1) {
+      end = nums[i];
+    } else {
+      if (end - start >= 2) {
+        result.push(`${start}-${end}`);
+      } else {
+        result.push(start.toString());
+        if (start !== end) result.push(end.toString());
+      }
+      start = nums[i];
+      end = nums[i];
+    }
+  }
+  return result.join(",");
 }
 
 module.exports = {
-    createCompassPoints : createCompassPoints,
-    expandBraces : expandBraces,
-    getZigZagMatrix : getZigZagMatrix,
-    canDominoesMakeRow : canDominoesMakeRow,
-    extractRanges : extractRanges
+  createCompassPoints: createCompassPoints,
+  expandBraces: expandBraces,
+  getZigZagMatrix: getZigZagMatrix,
+  canDominoesMakeRow: canDominoesMakeRow,
+  extractRanges: extractRanges,
 };
